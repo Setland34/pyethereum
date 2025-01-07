@@ -12,21 +12,26 @@ class Transaction():
         Initialize a Transaction instance.
 
         Args:
-            *args: Variable length argument list. If two arguments are provided, the first is self and the second is the serialized transaction data. Otherwise, the arguments are nonce, to, value, fee, and data.
+            *args: Variable length argument list. If one argument is provided, it is assumed to be the serialized transaction data.
+                   If multiple arguments are provided, they are assumed to be the transaction fields (nonce, to, value, fee, data).
 
         Raises:
-            Exception: If the number of arguments is not 2 or 6.
+            ValueError: If the number of arguments is not 1 or 6.
         """
-        if len(args) == 2:
-            self.parse(args[1])
+        if len(args) == 1:
+            self.parse(args[0])
         elif len(args) == 6:
-            self.nonce = args[1]
-            self.to = args[2]
-            self.value = args[3]
-            self.fee = args[4]
-            self.data = args[5]
+            self.nonce = args[0]
+            self.to = args[1]
+            self.value = args[2]
+            self.fee = args[3]
+            self.data = args[4]
+            self.v = None
+            self.r = None
+            self.s = None
+            self.sender = None
         else:
-            raise Exception("Invalid number of arguments")
+            raise ValueError("Invalid number of arguments")
 
     def parse(self, data):
         """
@@ -35,8 +40,11 @@ class Transaction():
         Args:
             data (str): The serialized transaction data.
 
+        Returns:
+            Transaction: The parsed transaction.
+
         Raises:
-            Exception: If the data format is invalid.
+            ValueError: If the data is not a valid hexadecimal string.
         """
         if re.match('^[0-9a-fA-F]*$', data):
             data = data.decode('hex')
@@ -64,7 +72,7 @@ class Transaction():
         Returns:
             Transaction: The signed transaction.
         """
-        rawhash = sha256(rlp.encode([self.to, self.value, self.fee, self.data]))
+        rawhash = sha256(rlp.encode([self.nonce, self.to, self.value, self.fee, self.data]))
         self.v, self.r, self.s = ecdsa_raw_sign(rawhash, key)
         self.sender = bin_sha256(privtopub(key)[1:])[-20:]
         return self
@@ -80,7 +88,7 @@ class Transaction():
 
     def hex_serialize(self):
         """
-        Serialize the transaction and return it as a hexadecimal string.
+        Serialize the transaction to a hexadecimal string.
 
         Returns:
             str: The serialized transaction data as a hexadecimal string.

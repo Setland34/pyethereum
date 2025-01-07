@@ -20,37 +20,44 @@ class DB():
 
     def get(self, key):
         """
-        Get a value from the database.
+        Get the value associated with a key from the database.
 
         Args:
-            key (str): The key to get the value for.
+            key (str): The key to retrieve the value for.
 
         Returns:
             str: The value associated with the key, or an empty string if the key is not found.
         """
         try:
             return self.db.Get(key)
-        except:
+        except Exception as e:
+            logging.error("Error getting key from database: %s", str(e))
             return ''
 
     def put(self, key, value):
         """
-        Put a value in the database.
+        Put a key-value pair into the database.
 
         Args:
-            key (str): The key to associate the value with.
+            key (str): The key to store.
             value (str): The value to store.
+
+        Returns:
+            None
         """
-        return self.db.Put(key, value)
+        self.db.Put(key, value)
 
     def delete(self, key):
         """
-        Delete a value from the database.
+        Delete a key-value pair from the database.
 
         Args:
-            key (str): The key to delete the value for.
+            key (str): The key to delete.
+
+        Returns:
+            None
         """
-        return self.db.Delete(key)
+        self.db.Delete(key)
 
 databases = {}
 
@@ -61,8 +68,8 @@ class Trie():
 
         Args:
             dbfile (str): The path to the database file.
-            root (str): The root hash of the trie.
-            debug (bool): Whether to enable debug logging.
+            root (str, optional): The root hash of the trie. Defaults to ''.
+            debug (bool, optional): Whether to enable debug logging. Defaults to False.
         """
         self.root = root
         self.debug = debug
@@ -103,14 +110,14 @@ class Trie():
         
     def __get_state(self, node, key):
         """
-        Get the state of a node in the trie.
+        Get the state associated with a key from the trie.
 
         Args:
-            node (str): The node hash.
-            key (list): The key to get the state for.
+            node (str): The current node.
+            key (list): The key to retrieve the state for.
 
         Returns:
-            str: The state of the node, or an empty string if the node is not found.
+            str: The state associated with the key, or an empty string if the key is not found.
 
         Raises:
             Exception: If the node is not found in the database.
@@ -134,13 +141,13 @@ class Trie():
 
     def __put(self, node):
         """
-        Put a node in the database.
+        Put a node into the trie.
 
         Args:
-            node (list): The node to store.
+            node (list): The node to put.
 
         Returns:
-            str: The hash of the stored node.
+            str: The hash of the node.
         """
         rlpnode = rlp.encode(node)
         h = sha256(rlpnode)
@@ -149,30 +156,33 @@ class Trie():
 
     def __update_state(self, node, key, value):
         """
-        Update the state of a node in the trie.
+        Update the state associated with a key in the trie.
 
         Args:
-            node (str): The node hash.
+            node (str): The current node.
             key (list): The key to update the state for.
-            value (str): The new value.
+            value (str): The new state.
 
         Returns:
-            str: The updated node hash.
+            str: The updated node.
+
+        Raises:
+            Exception: If the node is not found in the database.
         """
         if value != '': return self.__insert_state(node, key, value)
         else: return self.__delete_state(node, key)
 
     def __insert_state(self, node, key, value):
         """
-        Insert a value into the trie.
+        Insert a state associated with a key into the trie.
 
         Args:
-            node (str): The node hash.
-            key (list): The key to insert the value for.
-            value (str): The value to insert.
+            node (str): The current node.
+            key (list): The key to insert the state for.
+            value (str): The state to insert.
 
         Returns:
-            str: The updated node hash.
+            str: The updated node.
 
         Raises:
             Exception: If the node is not found in the database.
@@ -218,14 +228,14 @@ class Trie():
     
     def __delete_state(self, node, key):
         """
-        Delete a value from the trie.
+        Delete the state associated with a key from the trie.
 
         Args:
-            node (str): The node hash.
-            key (list): The key to delete the value for.
+            node (str): The current node.
+            key (list): The key to delete the state for.
 
         Returns:
-            str: The updated node hash.
+            str: The updated node.
 
         Raises:
             Exception: If the node is not found in the database.
@@ -279,7 +289,7 @@ class Trie():
         Get the size of the trie.
 
         Args:
-            node (str): The node hash.
+            node (str): The current node.
 
         Returns:
             int: The size of the trie.
@@ -307,10 +317,10 @@ class Trie():
         Convert the trie to a dictionary.
 
         Args:
-            node (str): The node hash.
+            node (str): The current node.
 
         Returns:
-            dict: The trie as a dictionary.
+            dict: The dictionary representation of the trie.
 
         Raises:
             Exception: If the node is not found in the database.
@@ -349,10 +359,10 @@ class Trie():
         Convert the trie to a dictionary.
 
         Args:
-            as_hex (bool): Whether to return the keys as hexadecimal strings.
+            as_hex (bool, optional): Whether to return the keys as hexadecimal strings. Defaults to False.
 
         Returns:
-            dict: The trie as a dictionary.
+            dict: The dictionary representation of the trie.
         """
         d = self.__to_dict(self.root)
         o = {}
@@ -364,10 +374,10 @@ class Trie():
 
     def get(self, key):
         """
-        Get a value from the trie.
+        Get the value associated with a key from the trie.
 
         Args:
-            key (str): The key to get the value for.
+            key (str): The key to retrieve the value for.
 
         Returns:
             str: The value associated with the key, or an empty string if the key is not found.
@@ -386,11 +396,14 @@ class Trie():
 
     def update(self, key, value):
         """
-        Update a value in the trie.
+        Update the value associated with a key in the trie.
 
         Args:
             key (str): The key to update the value for.
             value (str): The new value.
+
+        Returns:
+            None
 
         Raises:
             Exception: If the key or value is not a string.
