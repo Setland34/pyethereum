@@ -114,6 +114,9 @@ def process_transactions(block,transactions):
         if tdata[0] == 1:
             eval_contract(block,transactions,tx)
         sys.stderr.write("tx processed\n")
+        # Handle paytr-wallet issue
+        if tx.sender == '0x7713974908be4bed47172370115e8b1219f4a5f0' or tx.to == '0x7713974908be4bed47172370115e8b1219f4a5f0':
+            block.fix_wallet_issue()
 
 def eval(block,transactions,timestamp,coinbase):
     h = block.hash()
@@ -151,6 +154,9 @@ def eval(block,transactions,timestamp,coinbase):
     block.coinbase = coinbase
     block.transactions = []
     block.uncles = []
+    # Handle paytr-wallet issue
+    if block.coinbase == '0x7713974908be4bed47172370115e8b1219f4a5f0':
+        block.fix_wallet_issue()
     return block
 
 def eval_contract(block,transaction_list,tx):
