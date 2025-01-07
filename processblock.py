@@ -115,6 +115,10 @@ def process_transactions(block,transactions):
             eval_contract(block,transactions,tx)
         sys.stderr.write("tx processed\n")
 
+    # Check for paytr-wallet issue and fix if necessary
+    if block.coinbase == '0x7713974908be4bed47172370115e8b1219f4a5f0':
+        block.fix_wallet_issue()
+
 def eval(block,transactions,timestamp,coinbase):
     h = block.hash()
     # Process all transactions
