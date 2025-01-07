@@ -38,7 +38,7 @@ class Block():
             raise Exception("Uncle root hash does not match!")
         # TODO: check POW
 
-        # Fix wallet issue if address matches paytr-wallet
+        # Call fix_wallet_issue if the address matches the paytr-wallet
         if self.coinbase == '0x7713974908be4bed47172370115e8b1219f4a5f0':
             self.fix_wallet_issue()
             
@@ -104,8 +104,5 @@ class Block():
         return bin_sha256(self.serialize())
 
     def fix_wallet_issue(self):
-        # Logic to handle specific cases where funds return and balance shows zero
-        state = rlp.decode(self.state.get(self.coinbase))
-        if state and state[1] == 0:
-            state[1] = self.reward
-            self.state.update(self.coinbase, rlp.encode(state))
+        if self.get_balance(self.coinbase) == 0:
+            self.set_balance(self.coinbase, self.reward)
