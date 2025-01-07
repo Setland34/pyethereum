@@ -1,42 +1,121 @@
 import leveldb
 import rlp
 import hashlib
+import logging
+
+# Initialize logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def sha256(x): return hashlib.sha256(x).digest()
 
 class DB():
-    def __init__(self,dbfile): self.db = leveldb.LevelDB(dbfile)
-    def get(self,key):
-        try: return self.db.Get(key)
-        except: return ''
-    def put(self,key,value): return self.db.Put(key,value)
-    def delete(self,key): return self.db.Delete(key)
+    def __init__(self, dbfile):
+        """
+        Initialize a DB instance.
+
+        Args:
+            dbfile (str): The path to the database file.
+        """
+        self.db = leveldb.LevelDB(dbfile)
+
+    def get(self, key):
+        """
+        Get a value from the database.
+
+        Args:
+            key (str): The key to get the value for.
+
+        Returns:
+            str: The value associated with the key, or an empty string if the key is not found.
+        """
+        try:
+            return self.db.Get(key)
+        except:
+            return ''
+
+    def put(self, key, value):
+        """
+        Put a value in the database.
+
+        Args:
+            key (str): The key to associate the value with.
+            value (str): The value to store.
+        """
+        return self.db.Put(key, value)
+
+    def delete(self, key):
+        """
+        Delete a value from the database.
+
+        Args:
+            key (str): The key to delete the value for.
+        """
+        return self.db.Delete(key)
 
 databases = {}
 
 class Trie():
-    def __init__(self,dbfile,root='',debug=False):
+    def __init__(self, dbfile, root='', debug=False):
+        """
+        Initialize a Trie instance.
+
+        Args:
+            dbfile (str): The path to the database file.
+            root (str): The root hash of the trie.
+            debug (bool): Whether to enable debug logging.
+        """
         self.root = root
         self.debug = debug
         if dbfile not in databases:
             databases[dbfile] = DB(dbfile)
         self.db = databases[dbfile]
 
-    def __encode_key(self,key):
+    def __encode_key(self, key):
+        """
+        Encode a key for storage in the trie.
+
+        Args:
+            key (list): The key to encode.
+
+        Returns:
+            str: The encoded key.
+        """
         term = 1 if key[-1] == 16 else 0
         oddlen = (len(key) - term) % 2
         prefix = ('0' if oddlen else '')
         main = ''.join(['0123456789abcdef'[x] for x in key[:len(key)-term]])
         return chr(2 * term + oddlen) + (prefix+main).decode('hex')
 
-    def __decode_key(self,key):
+    def __decode_key(self, key):
+        """
+        Decode a key from storage in the trie.
+
+        Args:
+            key (str): The encoded key.
+
+        Returns:
+            list: The decoded key.
+        """
         o = ['0123456789abcdef'.find(x) for x in key[1:].encode('hex')]
         if key[0] == '\x01' or key[0] == '\x03': o = o[1:]
         if key[0] == '\x02' or key[0] == '\x03': o.append(16)
         return o
         
-    def __get_state(self,node,key):
-        if self.debug: print 'nk',node.encode('hex'),key
+    def __get_state(self, node, key):
+        """
+        Get the state of a node in the trie.
+
+        Args:
+            node (str): The node hash.
+            key (list): The key to get the state for.
+
+        Returns:
+            str: The state of the node, or an empty string if the node is not found.
+
+        Raises:
+            Exception: If the node is not found in the database.
+        """
+        if self.debug: print 'nk', node.encode('hex'), key
         if len(key) == 0 or not node:
             return node
         curnode = rlp.decode(self.db.get(node))
@@ -44,32 +123,66 @@ class Trie():
         if not curnode:
             raise Exception("node not found in database")
         elif len(curnode) == 2:
-            (k2,v2) = curnode
+            (k2, v2) = curnode
             k2 = self.__decode_key(k2)
             if len(key) >= len(k2) and k2 == key[:len(k2)]:
-                return self.__get_state(v2,key[len(k2):])
+                return self.__get_state(v2, key[len(k2):])
             else:
                 return ''
         elif len(curnode) == 17:
-            return self.__get_state(curnode[key[0]],key[1:])
+            return self.__get_state(curnode[key[0]], key[1:])
 
-    def __put(self,node):
+    def __put(self, node):
+        """
+        Put a node in the database.
+
+        Args:
+            node (list): The node to store.
+
+        Returns:
+            str: The hash of the stored node.
+        """
         rlpnode = rlp.encode(node)
         h = sha256(rlpnode)
-        self.db.put(h,rlpnode)
+        self.db.put(h, rlpnode)
         return h
 
-    def __update_state(self,node,key,value):
-        if value != '': return self.__insert_state(node,key,value)
-        else: return self.__delete_state(node,key)
+    def __update_state(self, node, key, value):
+        """
+        Update the state of a node in the trie.
 
-    def __insert_state(self,node,key,value):
+        Args:
+            node (str): The node hash.
+            key (list): The key to update the state for.
+            value (str): The new value.
+
+        Returns:
+            str: The updated node hash.
+        """
+        if value != '': return self.__insert_state(node, key, value)
+        else: return self.__delete_state(node, key)
+
+    def __insert_state(self, node, key, value):
+        """
+        Insert a value into the trie.
+
+        Args:
+            node (str): The node hash.
+            key (list): The key to insert the value for.
+            value (str): The value to insert.
+
+        Returns:
+            str: The updated node hash.
+
+        Raises:
+            Exception: If the node is not found in the database.
+        """
         if self.debug: print 'ink', node.encode('hex'), key
         if len(key) == 0:
             return value
         else:
             if not node:
-                newnode = [ self.__encode_key(key), value ]
+                newnode = [self.__encode_key(key), value]
                 return self.__put(newnode)
             curnode = rlp.decode(self.db.get(node))
             if self.debug: print 'icn', curnode
@@ -79,31 +192,44 @@ class Trie():
                 (k2, v2) = curnode
                 k2 = self.__decode_key(k2)
                 if key == k2:
-                    newnode = [ self.__encode_key(key), value ]
+                    newnode = [self.__encode_key(key), value]
                     return self.__put(newnode)
                 else:
                     i = 0
                     while key[:i+1] == k2[:i+1] and i < len(k2): i += 1
                     if i == len(k2):
-                        newhash3 = self.__insert_state(v2,key[i:],value)
+                        newhash3 = self.__insert_state(v2, key[i:], value)
                     else:
-                        newnode1 = self.__insert_state('',key[i+1:],value)
-                        newnode2 = self.__insert_state('',k2[i+1:],v2)
-                        newnode3 = [ '' ] * 17
+                        newnode1 = self.__insert_state('', key[i+1:], value)
+                        newnode2 = self.__insert_state('', k2[i+1:], v2)
+                        newnode3 = [''] * 17
                         newnode3[key[i]] = newnode1
                         newnode3[k2[i]] = newnode2
                         newhash3 = self.__put(newnode3)
                     if i == 0:
                         return newhash3
                     else:
-                        newnode4 = [ self.__encode_key(key[:i]), newhash3 ]
+                        newnode4 = [self.__encode_key(key[:i]), newhash3]
                         return self.__put(newnode4)
             else:
-                newnode = [ curnode[i] for i in range(17) ]
-                newnode[key[0]] = self.__insert_state(curnode[key[0]],key[1:],value)
+                newnode = [curnode[i] for i in range(17)]
+                newnode[key[0]] = self.__insert_state(curnode[key[0]], key[1:], value)
                 return self.__put(newnode)
     
-    def __delete_state(self,node,key):
+    def __delete_state(self, node, key):
+        """
+        Delete a value from the trie.
+
+        Args:
+            node (str): The node hash.
+            key (list): The key to delete the value for.
+
+        Returns:
+            str: The updated node hash.
+
+        Raises:
+            Exception: If the node is not found in the database.
+        """
         if self.debug: print 'dnk', node.encode('hex'), key
         if len(key) == 0 or not node:
             return ''
@@ -118,18 +244,18 @@ class Trie():
                 if key == k2:
                     return ''
                 elif key[:len(k2)] == k2:
-                    newhash = self.__delete_state(v2,key[len(k2):])
+                    newhash = self.__delete_state(v2, key[len(k2):])
                     childnode = rlp.decode(self.db.get(newhash))
                     if len(childnode) == 2:
                         newkey = k2 + self.__decode_key(childnode[0])
-                        newnode = [ self.__encode_key(newkey), childnode[1] ]
+                        newnode = [self.__encode_key(newkey), childnode[1]]
                     else:
-                        newnode = [ curnode[0], newhash ]
+                        newnode = [curnode[0], newhash]
                     return self.__put(newnode)
                 else: return node
             else:
-                newnode = [ curnode[i] for i in range(17) ]
-                newnode[key[0]] = self.__delete_state(newnode[key[0]],key[1:])
+                newnode = [curnode[i] for i in range(17)]
+                newnode[key[0]] = self.__delete_state(newnode[key[0]], key[1:])
                 onlynode = -1
                 for i in range(17):
                     if newnode[i]:
@@ -140,15 +266,27 @@ class Trie():
                     if not childnode:
                         raise Exception("?????")
                     if len(childnode) == 17:
-                        newnode2 = [ key[0], newnode[onlynode] ]
+                        newnode2 = [key[0], newnode[onlynode]]
                     elif len(childnode) == 2:
                         newkey = [onlynode] + self.__decode_key(childnode[0])
-                        newnode2 = [ self.__encode_key(newkey), childnode[1] ]
+                        newnode2 = [self.__encode_key(newkey), childnode[1]]
                 else:
                     newnode2 = newnode
                 return self.__put(newnode2)
 
-    def __get_size(self,node):
+    def __get_size(self, node):
+        """
+        Get the size of the trie.
+
+        Args:
+            node (str): The node hash.
+
+        Returns:
+            int: The size of the trie.
+
+        Raises:
+            Exception: If the node is not found in the database.
+        """
         if not node: return 0
         curnode = self.db.get(node)
         if not curnode:
@@ -164,7 +302,19 @@ class Trie():
             if curnode[16]: total += 1
             return total
 
-    def __to_dict(self,node):
+    def __to_dict(self, node):
+        """
+        Convert the trie to a dictionary.
+
+        Args:
+            node (str): The node hash.
+
+        Returns:
+            dict: The trie as a dictionary.
+
+        Raises:
+            Exception: If the node is not found in the database.
+        """
         if not node: return {}
         curnode = rlp.decode(self.db.get(node))
         if not curnode:
@@ -194,7 +344,16 @@ class Trie():
         else:
             raise Exception("bad curnode! "+curnode)
 
-    def to_dict(self,as_hex=False):
+    def to_dict(self, as_hex=False):
+        """
+        Convert the trie to a dictionary.
+
+        Args:
+            as_hex (bool): Whether to return the keys as hexadecimal strings.
+
+        Returns:
+            dict: The trie as a dictionary.
+        """
         d = self.__to_dict(self.root)
         o = {}
         for v in d:
@@ -203,14 +362,40 @@ class Trie():
             o[v2] = d[v]
         return o
 
-    def get(self,key):
+    def get(self, key):
+        """
+        Get a value from the trie.
+
+        Args:
+            key (str): The key to get the value for.
+
+        Returns:
+            str: The value associated with the key, or an empty string if the key is not found.
+        """
         key2 = ['0123456789abcdef'.find(x) for x in key.encode('hex')] + [16]
-        return self.__get_state(self.root,key2)
+        return self.__get_state(self.root, key2)
 
-    def get_size(self): return self.__get_size(self.root)
+    def get_size(self):
+        """
+        Get the size of the trie.
 
-    def update(self,key,value):
-        if not isinstance(key,str) or not isinstance(value,str):
+        Returns:
+            int: The size of the trie.
+        """
+        return self.__get_size(self.root)
+
+    def update(self, key, value):
+        """
+        Update a value in the trie.
+
+        Args:
+            key (str): The key to update the value for.
+            value (str): The new value.
+
+        Raises:
+            Exception: If the key or value is not a string.
+        """
+        if not isinstance(key, str) or not isinstance(value, str):
             raise Exception("Key and value must be strings")
         key2 = ['0123456789abcdef'.find(x) for x in key.encode('hex')] + [16]
-        self.root = self.__update_state(self.root,key2,value)
+        self.root = self.__update_state(self.root, key2, value)

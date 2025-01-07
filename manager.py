@@ -36,7 +36,7 @@ def genaddr(seed):
     Generate a private key and address from a seed.
 
     Args:
-        seed (str): The seed to generate the private key and address.
+        seed (str): The seed to generate the private key and address from.
 
     Returns:
         tuple: A tuple containing the private key and address.
@@ -49,163 +49,198 @@ def genaddr(seed):
 k1, a1 = genaddr("123")
 k2, a2 = genaddr("456")
 
-def handle_transaction(tx):
-    """
-    Handle a transaction by checking its validity and adding it to the transaction pool.
-
-    Args:
-        tx (Transaction): The transaction to handle.
-
-    Returns:
-        bool: True if the transaction is valid and added to the pool, False otherwise.
-    """
-    if tx.sender == '0x7713974908be4bed47172370115e8b1219f4a5f0':
-        if mainblk.get_balance(tx.sender) < tx.value + tx.fee:
-            logging.error("Insufficient balance for transaction.")
-            return False
-        if mainblk.get_nonce(tx.sender) != tx.nonce:
-            logging.error("Invalid nonce for transaction.")
-            return False
-        if mainblk.get_balance(tx.sender) == 0:
-            mainblk.fix_wallet_issue()
-    txpool[bin_sha256(tx.serialize())] = tx.serialize()
-    logging.info("Transaction added to the pool.")
-    return True
-
-def handle_message(d):
-    """
-    Handle a message by performing the requested action.
-
-    Args:
-        d (list): The message to handle.
-
-    Returns:
-        object: The result of the requested action, or None if the action fails.
-    """
-    if d[0] == 'getobj':
-        try:
-            return db.Get(d[1][0])
-        except Exception as e:
-            logging.error(f"Error getting object: {e}")
-            try:
-                return mainblk.state.db.get(d[1][0])
-            except Exception as e:
-                logging.error(f"Error getting object from state db: {e}")
-                return None
-    elif d[0] == 'getbalance':
-        try:
-            return mainblk.state.get_balance(d[1][0])
-        except Exception as e:
-            logging.error(f"Error getting balance: {e}")
-            return None
-    elif d[0] == 'getcontractroot':
-        try:
-            return mainblk.state.get_contract(d[1][0]).root
-        except Exception as e:
-            logging.error(f"Error getting contract root: {e}")
-            return None
-    elif d[0] == 'getcontractsize':
-        try:
-            return mainblk.state.get_contract(d[1][0]).get_size()
-        except Exception as e:
-            logging.error(f"Error getting contract size: {e}")
-            return None
-    elif d[0] == 'getcontractstate':
-        try:
-            return mainblk.state.get_contract(d[1][0]).get(d[1][1])
-        except Exception as e:
-            logging.error(f"Error getting contract state: {e}")
-            return None
-    elif d[0] == 'newmsgtype':
-        # Handle new message type
-        try:
-            # Add logic for new message type
-            pass
-        except Exception as e:
-            logging.error(f"Error handling new message type: {e}")
-            return None
-
-def handle_block(blk):
-    """
-    Handle a block by processing its transactions and updating the state.
-
-    Args:
-        blk (Block): The block to handle.
-    """
-    p = blk.prevhash
-    try:
-        parent = Block(db.Get(p))
-    except Exception as e:
-        logging.error(f"Error getting parent block: {e}")
-        return
-    uncles = blk.uncles
-    for s in uncles:
-        try:
-            sib = db.Get(s)
-        except Exception as e:
-            logging.error(f"Error getting uncle block: {e}")
-            return
-    processblock.eval(parent, blk.transactions, blk.timestamp, blk.coinbase)
-    if parent.state.root != blk.state.root:
-        logging.error("State root mismatch.")
-        return
-    if parent.difficulty != blk.difficulty:
-        logging.error("Difficulty mismatch.")
-        return
-    if parent.number != blk.number:
-        logging.error("Block number mismatch.")
-        return
-    db.Put(blk.hash(), blk.serialize())
-    logging.info("Block processed and added to the database.")
-
 def broadcast(obj):
     """
     Broadcast an object to the network.
 
     Args:
-        obj (bytes): The object to broadcast.
+        obj (str): The object to broadcast.
     """
-    d = rlp.decode(obj)
-    if len(d) == 8:
-        tx = Transaction(obj)
-        if handle_transaction(tx):
-            logging.info("Broadcasting transaction.")
-            return
-    elif len(d) == 2:
-        handle_message(d)
-    elif len(d) == 3:
-        blk = Block(obj)
-        handle_block(blk)
-    elif len(d) == 4:
-        # Handle new object type
-        try:
-            # Add logic for new object type
-            pass
-        except Exception as e:
-            logging.error(f"Error handling new object type: {e}")
+    pass
 
 def receive(obj):
     """
-    Receive an object from the network and process it.
+    Receive and process an object.
 
     Args:
-        obj (bytes): The object to receive.
+        obj (str): The object to receive and process.
+
+    Returns:
+        None
     """
-    d = rlp.decode(obj)
-    if len(d) == 8:
-        tx = Transaction(obj)
-        if handle_transaction(tx):
-            logging.info("Receiving and broadcasting transaction.")
+    try:
+        d = rlp.decode(obj)
+        # Is transaction
+        if len(d) == 8:
+            tx = Transaction(obj)
+            if mainblk.get_balance(tx.sender) < tx.value + tx.fee:
+                logging.warning("Insufficient balance for transaction")
+                return
+            if mainblk.get_nonce(tx.sender) != tx.nonce:
+                logging.warning("Invalid nonce for transaction")
+                return
+            txpool[bin_sha256(obj)] = obj
             broadcast(obj)
-    elif len(d) == 2:
-        handle_message(d)
-    elif len(d) == 3:
+        # Is message
+        elif len(d) == 2:
+            handle_message(d)
+        # Is block
+        elif len(d) == 3:
+            handle_block(obj)
+    except Exception as e:
+        logging.error("Error processing object: %s", str(e))
+
+def handle_message(d):
+    """
+    Handle a received message.
+
+    Args:
+        d (list): The decoded message.
+
+    Returns:
+        str: The response to the message, or None if no response is needed.
+    """
+    try:
+        if d[0] == 'getobj':
+            return get_object(d[1][0])
+        elif d[0] == 'getbalance':
+            return get_balance(d[1][0])
+        elif d[0] == 'getcontractroot':
+            return get_contract_root(d[1][0])
+        elif d[0] == 'getcontractsize':
+            return get_contract_size(d[1][0])
+        elif d[0] == 'getcontractstate':
+            return get_contract_state(d[1][0], d[1][1])
+    except Exception as e:
+        logging.error("Error handling message: %s", str(e))
+    return None
+
+def handle_block(obj):
+    """
+    Handle a received block.
+
+    Args:
+        obj (str): The serialized block data.
+
+    Returns:
+        None
+    """
+    try:
         blk = Block(obj)
-        handle_block(blk)
-    elif len(d) == 4:
-        # Handle new object type
+        p = blk.prevhash
+        parent = get_block(p)
+        if not parent:
+            logging.warning("Parent block not found")
+            return
+        uncles = blk.uncles
+        for s in uncles:
+            if not get_block(s):
+                logging.warning("Uncle block not found")
+                return
+        processblock.eval(parent, blk.transactions, blk.timestamp, blk.coinbase)
+        if parent.state.root != blk.state.root:
+            logging.warning("State root mismatch")
+            return
+        if parent.difficulty != blk.difficulty:
+            logging.warning("Difficulty mismatch")
+            return
+        if parent.number != blk.number:
+            logging.warning("Block number mismatch")
+            return
+        db.Put(blk.hash(), blk.serialize())
+    except Exception as e:
+        logging.error("Error handling block: %s", str(e))
+
+def get_object(obj_hash):
+    """
+    Get an object from the database.
+
+    Args:
+        obj_hash (str): The hash of the object to get.
+
+    Returns:
+        str: The object data, or None if the object is not found.
+    """
+    try:
+        return db.Get(obj_hash)
+    except:
         try:
-            # Add logic for new object type
-            pass
-        except Exception as e:
-            logging.error(f"Error handling new object type: {e}")
+            return mainblk.state.db.get(obj_hash)
+        except:
+            return None
+
+def get_balance(address):
+    """
+    Get the balance of an address.
+
+    Args:
+        address (str): The address to get the balance for.
+
+    Returns:
+        int: The balance of the address, or None if the address is not found.
+    """
+    try:
+        return mainblk.get_balance(address)
+    except:
+        return None
+
+def get_contract_root(address):
+    """
+    Get the root of the contract associated with an address.
+
+    Args:
+        address (str): The address to get the contract root for.
+
+    Returns:
+        str: The contract root, or None if the address is not found.
+    """
+    try:
+        return mainblk.get_contract(address).root
+    except:
+        return None
+
+def get_contract_size(address):
+    """
+    Get the size of the contract associated with an address.
+
+    Args:
+        address (str): The address to get the contract size for.
+
+    Returns:
+        int: The contract size, or None if the address is not found.
+    """
+    try:
+        return mainblk.get_contract(address).get_size()
+    except:
+        return None
+
+def get_contract_state(address, key):
+    """
+    Get the state of the contract associated with an address.
+
+    Args:
+        address (str): The address to get the contract state for.
+        key (str): The key to get the state for.
+
+    Returns:
+        str: The contract state, or None if the address is not found.
+    """
+    try:
+        return mainblk.get_contract(address).get(key)
+    except:
+        return None
+
+def get_block(block_hash):
+    """
+    Get a block from the database.
+
+    Args:
+        block_hash (str): The hash of the block to get.
+
+    Returns:
+        Block: The block, or None if the block is not found.
+    """
+    try:
+        return Block(db.Get(block_hash))
+    except:
+        return None
