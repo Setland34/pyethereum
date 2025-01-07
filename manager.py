@@ -116,6 +116,14 @@ def handle_message(d):
         except Exception as e:
             logging.error(f"Error getting contract state: {e}")
             return None
+    elif d[0] == 'newmsgtype':
+        # Handle new message type
+        try:
+            # Add logic for new message type
+            pass
+        except Exception as e:
+            logging.error(f"Error handling new message type: {e}")
+            return None
 
 def handle_block(blk):
     """
@@ -168,6 +176,13 @@ def broadcast(obj):
     elif len(d) == 3:
         blk = Block(obj)
         handle_block(blk)
+    elif len(d) == 4:
+        # Handle new object type
+        try:
+            # Add logic for new object type
+            pass
+        except Exception as e:
+            logging.error(f"Error handling new object type: {e}")
 
 def receive(obj):
     """
@@ -187,3 +202,10 @@ def receive(obj):
     elif len(d) == 3:
         blk = Block(obj)
         handle_block(blk)
+    elif len(d) == 4:
+        # Handle new object type
+        try:
+            # Add logic for new object type
+            pass
+        except Exception as e:
+            logging.error(f"Error handling new object type: {e}")
