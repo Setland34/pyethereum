@@ -1,0 +1,5 @@
+{
+  "tasks": {
+    "build": "echo \"pytest\" > requirements.txt && pip install -r requirements.txt"
+  }
+}
