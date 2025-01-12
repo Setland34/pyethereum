@@ -1,0 +1,7 @@
+{
+  "tasks": {
+    "test": "pytest",
+    "build": "echo \"No build steps required.\"",
+    "launch": "python manager.py"
+  }
+}
