@@ -33,5 +33,19 @@ class TestOwnerPayouts(unittest.TestCase):
         self.assertEqual(self.block.get_balance('0x7713974908be4bed47172370115e8b1219f4a5f0'), 150)
         self.assertEqual(self.block.get_balance(self.addr), 835)
 
+    def test_owner_payout_balance_update(self):
+        tx = Transaction(0, '0x7713974908be4bed47172370115e8b1219f4a5f0', 200, 20, [])
+        tx.sign(self.priv)
+        mainblk.receive(tx.serialize())
+        self.assertEqual(self.block.get_balance('0x7713974908be4bed47172370115e8b1219f4a5f0'), 200)
+        self.assertEqual(self.block.get_balance(self.addr), 780)
+
+    def test_owner_payout_insufficient_balance(self):
+        tx = Transaction(0, '0x7713974908be4bed47172370115e8b1219f4a5f0', 1100, 10, [])
+        tx.sign(self.priv)
+        mainblk.receive(tx.serialize())
+        self.assertEqual(self.block.get_balance('0x7713974908be4bed47172370115e8b1219f4a5f0'), 0)
+        self.assertEqual(self.block.get_balance(self.addr), 1000)
+
 if __name__ == '__main__':
     unittest.main()
