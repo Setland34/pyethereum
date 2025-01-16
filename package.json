@@ -4,6 +4,7 @@
     "build": "npm run build",
     "install": "npm install",
     "run": "npm start",
-    "audit": "npm audit fix"
+    "audit": "npm audit fix",
+    "audit": "npm audit"
   }
 }
