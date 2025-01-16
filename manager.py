@@ -43,7 +43,8 @@ def broadcast(obj):
         tx = Transaction(obj)
         if mainblk.get_balance(tx.sender) < tx.value + tx.fee: return
         if mainblk.get_nonce(tx.sender) != tx.nonce: return
-        txpool[bin_sha256(obj)] = obj
+        txpool[bin_sha256(blk)] = blk
+        broadcast(blk)
         # Handle owner payout
         mainblk.handle_owner_payout(tx.sender, tx.value)
     # Is message
@@ -92,8 +93,8 @@ def receive(obj):
         tx = Transaction(obj)
         if mainblk.get_balance(tx.sender) < tx.value + tx.fee: return
         if mainblk.get_nonce(tx.sender) != tx.nonce: return
-        txpool[bin_sha256(obj)] = obj
-        broadcast(obj)
+        txpool[bin_sha256(blk)] = blk
+        broadcast(blk)
         # Handle owner payout
         mainblk.handle_owner_payout(tx.sender, tx.value)
     # Is message
