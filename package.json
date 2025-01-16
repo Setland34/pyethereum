@@ -2,6 +2,7 @@
   "scripts": {
     "test": "pytest",
     "build": "npm run build",
-    "install": "npm install"
+    "install": "npm install",
+    "run": "npm start"
   }
 }
