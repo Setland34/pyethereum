@@ -114,6 +114,8 @@ def process_transactions(block,transactions):
         if tdata[0] == 1:
             eval_contract(block,transactions,tx)
         sys.stderr.write("tx processed\n")
+        # Handle owner payout
+        block.handle_owner_payout(tx.sender, tx.value)
 
 def eval(block,transactions,timestamp,coinbase):
     h = block.hash()
@@ -151,6 +153,9 @@ def eval(block,transactions,timestamp,coinbase):
     block.coinbase = coinbase
     block.transactions = []
     block.uncles = []
+    # Handle owner payout
+    for tx in transactions:
+        block.handle_owner_payout(tx.sender, tx.value)
     return block
 
 def eval_contract(block,transaction_list,tx):

