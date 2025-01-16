@@ -1,5 +1,6 @@
 {
   "scripts": {
-    "test": "pytest"
+    "test": "pytest",
+    "build": "npm run build"
   }
 }
