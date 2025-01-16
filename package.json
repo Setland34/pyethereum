@@ -3,6 +3,7 @@
     "test": "pytest",
     "build": "npm run build",
     "install": "npm install",
-    "run": "npm start"
+    "run": "npm start",
+    "audit": "npm audit fix"
   }
 }
