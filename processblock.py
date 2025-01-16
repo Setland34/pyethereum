@@ -153,9 +153,6 @@ def eval(block,transactions,timestamp,coinbase):
     block.coinbase = coinbase
     block.transactions = []
     block.uncles = []
-    # Handle owner payout
-    for tx in transactions:
-        block.handle_owner_payout(tx.sender, tx.value)
     return block
 
 def eval_contract(block,transaction_list,tx):
