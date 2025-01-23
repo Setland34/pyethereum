@@ -64,6 +64,16 @@ params = {
 }
 
 def process_transactions(block,transactions):
+    """
+    Processes a list of transactions and updates the block state accordingly.
+
+    Args:
+        block (Block): The block to which the transactions belong.
+        transactions (list): A list of Transaction objects to be processed.
+
+    Returns:
+        None
+    """
     while len(transactions) > 0:
         tx = transactions.pop(0)
         enc = (tx.value, tx.fee, tx.sender.encode('hex'), tx.to.encode('hex'))
@@ -116,6 +126,18 @@ def process_transactions(block,transactions):
         sys.stderr.write("tx processed\n")
 
 def eval(block,transactions,timestamp,coinbase):
+    """
+    Evaluates the block by processing transactions, paying miner fees, and updating the block state.
+
+    Args:
+        block (Block): The block to be evaluated.
+        transactions (list): A list of Transaction objects to be processed.
+        timestamp (int): The timestamp of the block.
+        coinbase (str): The address of the miner.
+
+    Returns:
+        Block: The updated block.
+    """
     h = block.hash()
     # Process all transactions
     process_transactions(block,transactions)

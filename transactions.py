@@ -3,6 +3,20 @@ import rlp
 import re
 
 class Transaction():
+    """
+    Represents a transaction in the Ethereum blockchain.
+
+    Attributes:
+        nonce (int): The transaction count of the sender.
+        to (str): The address of the recipient.
+        value (int): The amount of Ether to be transferred.
+        fee (int): The transaction fee.
+        data (list): Additional data included in the transaction.
+        v (int): The recovery id of the transaction signature.
+        r (int): The r value of the transaction signature.
+        s (int): The s value of the transaction signature.
+        sender (str): The address of the sender.
+    """
     def __init__(*args):
         self = args[0]
         if len(args) == 2:
@@ -32,6 +46,15 @@ class Transaction():
         return self
 
     def sign(self,key):
+        """
+        Signs the transaction with the given private key.
+
+        Args:
+            key (str): The private key to sign the transaction.
+
+        Returns:
+            Transaction: The signed transaction.
+        """
         rawhash = sha256(rlp.encode([self.to,self.value,self.fee,self.data]))
         self.v,self.r,self.s = ecdsa_raw_sign(rawhash,key)
         self.sender = bin_sha256(privtopub(key)[1:])[-20:]

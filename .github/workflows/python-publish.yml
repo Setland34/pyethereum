@@ -32,6 +32,11 @@ jobs:
           python -m pip install build
           python -m build
 
+      - name: Install dependencies
+        run: |
+          python -m pip install leveldb
+          python -m pip install pybitcointools
+
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
