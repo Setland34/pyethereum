@@ -15,6 +15,14 @@ class DB():
 databases = {}
 
 class Trie():
+    """
+    Represents a Merkle Patricia Trie used for state management in the Ethereum blockchain.
+
+    Attributes:
+        root (str): The root hash of the trie.
+        debug (bool): Flag to enable or disable debug mode.
+        db (DB): The database instance used for storing trie nodes.
+    """
     def __init__(self,dbfile,root='',debug=False):
         self.root = root
         self.debug = debug
@@ -210,6 +218,16 @@ class Trie():
     def get_size(self): return self.__get_size(self.root)
 
     def update(self,key,value):
+        """
+        Updates the trie with the given key-value pair.
+
+        Args:
+            key (str): The key to be updated in the trie.
+            value (str): The value to be associated with the key.
+
+        Returns:
+            None
+        """
         if not isinstance(key,str) or not isinstance(value,str):
             raise Exception("Key and value must be strings")
         key2 = ['0123456789abcdef'.find(x) for x in key.encode('hex')] + [16]

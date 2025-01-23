@@ -9,6 +9,14 @@ def genkey():
 t = Trie('/tmp/'+genkey())
 
 def trie_test():
+    """
+    Tests the Trie class by performing a series of random key-value updates and verifying the results.
+
+    The function generates random keys and values, updates the trie with these key-value pairs, and then verifies that the values stored in the trie match the expected values.
+
+    Raises:
+        Exception: If the value retrieved from the trie does not match the expected value.
+    """
     o = {}
     for i in range(60):
         key, value = genkey(), genkey()

@@ -28,6 +28,15 @@ mainblk = Block(rlp.encode(genesis))
 db = leveldb.LevelDB("objects")
 
 def genaddr(seed):
+    """
+    Generates a private key and address from a given seed.
+
+    Args:
+        seed (str): The seed to generate the private key and address.
+
+    Returns:
+        tuple: A tuple containing the private key and address.
+    """
     priv = bin_sha256(seed)
     addr = bin_sha256(privtopub(priv)[1:])[-20:]
     return priv,addr
@@ -40,6 +49,15 @@ def broadcast(obj):
     pass
 
 def receive(obj):
+    """
+    Processes the received object and performs the appropriate action based on its type.
+
+    Args:
+        obj (str): The received object in RLP encoded format.
+
+    Returns:
+        None or the requested data based on the message type.
+    """
     d = rlp.decode(obj)
     # Is transaction
     if len(d) == 8:
@@ -86,4 +104,3 @@ def receive(obj):
         if parent.difficulty != blk.difficulty: return
         if parent.number != blk.number: return
         db.Put(blk.hash(),blk.serialize())
-    

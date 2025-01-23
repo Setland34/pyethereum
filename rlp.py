@@ -55,9 +55,28 @@ def __decode(s,pos=0):
     else:
         raise Exception("byte not supported: "+fchar)
 
-def decode(s): return __decode(s)[0]
+def decode(s):
+    """
+    Decodes the given RLP encoded string.
+
+    Args:
+        s (str): The RLP encoded string to decode.
+
+    Returns:
+        object: The decoded object.
+    """
+    return __decode(s)[0]
 
 def encode(s):
+    """
+    Encodes the given object using Recursive Length Prefix (RLP) encoding.
+
+    Args:
+        s (object): The object to encode. It can be an integer, string, or list.
+
+    Returns:
+        str: The RLP encoded string.
+    """
     if isinstance(s,(int,long)):
         if s < 0:
             raise Exception("can't handle negative ints")

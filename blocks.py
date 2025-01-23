@@ -6,6 +6,25 @@ from trie import Trie
 import sys
 
 class Block():
+    """
+    Represents a block in the Ethereum blockchain.
+
+    Attributes:
+        number (int): The block number.
+        prevhash (str): The hash of the previous block.
+        uncles_root (str): The root hash of the uncles.
+        coinbase (str): The address of the miner.
+        state_root (str): The root hash of the state trie.
+        transactions_root (str): The root hash of the transactions trie.
+        difficulty (int): The difficulty of the block.
+        timestamp (int): The timestamp of the block.
+        nonce (int): The nonce of the block.
+        extra (str): Extra data included in the block.
+        transactions (list): List of transactions included in the block.
+        state (Trie): The state trie of the block.
+        reward (int): The reward for mining the block.
+        uncles (list): List of uncles included in the block.
+    """
     def __init__(self,data=None):
 
         if not data:
@@ -39,6 +58,17 @@ class Block():
         # TODO: check POW
             
     def pay_fee(self,address,fee,tominer=True):
+        """
+        Pays the specified fee from the given address. If tominer is True, the fee is paid to the miner.
+
+        Args:
+            address (str): The address from which the fee is to be paid.
+            fee (int): The amount of the fee.
+            tominer (bool): Whether to pay the fee to the miner. Default is True.
+
+        Returns:
+            bool: True if the fee was successfully paid, False otherwise.
+        """
         # Subtract fee from sender
         sender_state = rlp.decode(self.state.get(address))
         if not sender_state or sender_state[1] < fee:
