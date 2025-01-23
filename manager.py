@@ -28,6 +28,22 @@ mainblk = Block(rlp.encode(genesis))
 db = leveldb.LevelDB("objects")
 
 def genaddr(seed):
+    """
+    Generate a private key and address from a given seed.
+
+    Args:
+        seed (str): The seed value to generate the private key and address.
+
+    Returns:
+        tuple: A tuple containing the private key and address.
+
+    Example:
+        >>> from manager import genaddr
+        >>> seed = "your_seed_here"
+        >>> private_key, address = genaddr(seed)
+        >>> print(f"Private Key: {private_key}")
+        >>> print(f"Address: {address}")
+    """
     priv = bin_sha256(seed)
     addr = bin_sha256(privtopub(priv)[1:])[-20:]
     return priv,addr
@@ -86,4 +102,3 @@ def receive(obj):
         if parent.difficulty != blk.difficulty: return
         if parent.number != blk.number: return
         db.Put(blk.hash(),blk.serialize())
-    
